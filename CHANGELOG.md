@@ -1,4 +1,8 @@
-# Node.js Buildpack Changelog
+# Coffeescript Buildpack Changelog
+
+## v1 (2015-09-30)
+Forked from https://github.com/heroku/heroku-buildpack-nodejs (v81),
+and updated to detect and compile coffeescript apps.
 
 ## v81 (2015-09-24)
 
