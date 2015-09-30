@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # bin/detect <build-dir>
 
-if [ -f $1/package.json ]; then
-  echo "Node.js"
+detect_coffee() {
+  local ctxDir=$1
+  test -d $ctxDir/src && test -n "$(find $ctxDir/src -maxdepth 1 -name '*.coffee' -print -quit)"
+}
+
+if detect_coffee $1 ; then
+  echo "Coffeescript"
   exit 0
 fi
 

@@ -87,6 +87,7 @@ install_bins() {
 
 header "Installing binaries"
 install_bins | indent
+NPM_CLI="$BUILD_DIR/.heroku/node/lib/node_modules/npm/cli.js"
 
 restore_cache() {
   local cache_status="$(get_cache_status)"
@@ -119,6 +120,14 @@ build_dependencies() {
 
 header "Building dependencies"
 build_dependencies | indent
+
+compile_coffeescript() {
+  `node $NPM_CLI bin`/coffee --compile --bare --output $BUILD_DIR/target/ $BUILD_DIR/src/
+  echo "Source compiled to target"
+}
+
+header "Compiling coffeescript source"
+compile_coffeescript | indent
 
 cache_build() {
   local cache_directories=$(get_cache_directories)
