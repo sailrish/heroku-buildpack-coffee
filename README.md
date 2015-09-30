@@ -1,208 +1,96 @@
-# Heroku Buildpack for Node.js
+Heroku buildpack: Coffeescript
+==============================
 
-![nodesjs](https://cloud.githubusercontent.com/assets/51578/8882955/3f0c3980-3219-11e5-8666-bc9c926a7356.jpg)
+This is a [Heroku buildpack](http://devcenter.heroku.com/articles/buildpacks) for [Coffeescript](http://coffeescript.org/) apps, and is compatible with [Cedar-14 stack](https://blog.heroku.com/archives/2014/11/4/cedar_14_now_generally_available). It uses [NPM](http://npmjs.org/) and [SCons](http://www.scons.org/). It was forked from the [Heroku Node.js buildpack](https://github.com/heroku/heroku-buildpack-nodejs). It is also loosely based on the [original coffeescript buildpack](https://github.com/aergonaut/heroku-buildpack-coffeescript) by [Chris Fung](https://github.com/aergonaut), which did not work out-of-the-box with Cedar-14.
 
+Usage
+-----
 
-This is the official [Heroku buildpack](http://devcenter.heroku.com/articles/buildpacks) for Node.js apps. If you fork this repository, please **update this README** to explain what your fork does and why it's special.
+Example usage:
 
-## Documentation
+    $ ls
+    Procfile  package.json  src
 
-For more information about using Node.js and buildpacks on Heroku, see these Dev Center articles:
+    $ ls src
+    app.coffee
 
-- [Heroku Node.js Support](https://devcenter.heroku.com/articles/nodejs-support)
-- [Getting Started with Node.js on Heroku](https://devcenter.heroku.com/articles/nodejs)
-- [10 Habits of a Happy Node Hacker](https://blog.heroku.com/archives/2014/3/11/node-habits)
-- [Buildpacks](https://devcenter.heroku.com/articles/buildpacks)
-- [Buildpack API](https://devcenter.heroku.com/articles/buildpack-api)
+    $ heroku create --stack cedar --buildpack https://github.com/sailrish/heroku-buildpack-coffee.git
 
-## Locking to a buildpack version
+    $ git push heroku master
+    ...
+    Compressing source files... done.
+    Building source:
 
-In production, you frequently want to lock all of your dependencies - including
-buildpacks - to a specific version. That way, you can regularly update and
-test them, upgrading with confidence.
+    -----> Fetching custom git buildpack... done
+    -----> Coffeescript app detected
 
-First, find the version you want from [the list of buildpack versions](https://github.com/heroku/heroku-buildpack-nodejs/releases).
-Then, specify that version with `buildpacks:set`:
+    -----> Creating runtime environment
 
-```
-heroku buildpacks:set https://github.com/heroku/heroku-buildpack-nodejs#v75 -a my-app
-```
+           NPM_CONFIG_LOGLEVEL=error
+           NPM_CONFIG_PRODUCTION=true
+           NODE_ENV=production
+           NODE_MODULES_CACHE=true
 
-If you have trouble upgrading to the latest version of the buildpack, please
-open a support ticket at [help.heroku.com](https://help.heroku.com/) so we can assist.
+    -----> Installing binaries
+           engines.node (package.json):  0.10.x
+           engines.npm (package.json):   1.3.x
 
-## Options
+           Resolving node version 0.10.x via semver.io...
+           Downloading and installing node 0.10.40...
+           Resolving npm version 1.3.x via semver.io...
+           Downloading and installing npm 1.3.26 (replacing version 1.4.28)...
+           npm WARN package.json github-url-from-git@1.1.1 No repository field.
 
-### Specify a node version
+    -----> Restoring cache
+           Skipping cache (new runtime signature)
 
-Set engines.node in package.json to the semver range
-(or specific version) of node you'd like to use.
-(It's a good idea to make this the same version you use during development)
+    -----> Building dependencies
+           Pruning any extraneous modules
+           Installing node modules (package.json)
+    ...
+    ...
+    -----> Compiling coffeescript source
+           Source compiled to target
 
-```json
-"engines": {
-  "node": "0.11.x"
-}
-```
+    -----> Caching build
+           Clearing previous node cache
+           Saving 1 cacheDirectories (default):
+           - node_modules
 
-```json
-"engines": {
-  "node": "0.10.33"
-}
-```
+    -----> Build succeeded!
+    ...
+    ...
+    -----> Discovering process types
+           Procfile declares types -> web
 
-Default: the
-[latest stable version.](http://semver.io/node)
+    -----> Compressing... done, 24.1MB
+    -----> Launching... done, v10
+    ...
 
-### Specify an npm version
+The buildpack will detect your app as Coffeescript if it detects a file matching `src/*.coffee` in your project root.  It will use NPM to install your dependencies, and vendors a version of the Node.js runtime into your slug.  The `node_modules` directory will be cached between builds to allow for faster NPM install time.
 
-Set engines.npm in package.json to the semver range
-(or specific version) of npm you'd like to use.
-(It's a good idea to make this the same version you use during development)
+You must include Coffeescript in your `package.json`. The buildpack does not install Coffeescript automatically in order to allow you to specify your own Coffeescript version.
 
-Since 'npm 2' shipped several major bugfixes, you might try:
+Compiled javascript is written to the `target` directory in the slug. Your `Procfile` should reference these compiled files like so:
 
-```json
-"engines": {
-  "npm": "2.x"
-}
-```
+    web: node target/app.js
 
-```json
-"engines": {
-  "npm": "^2.1.0"
-}
-```
+Node.js and npm versions
+------------------------
 
-Default: the version of npm bundled with your node install (varies).
+You can specify the versions of Node.js and npm your application requires using `package.json`
 
-### Enable or disable node_modules caching
+    {
+      "name": "myapp",
+      "version": "0.0.1",
+      "engines": {
+        "node": "0.10.x",
+        "npm": "1.3.x"
+      }
+    }
 
-For a 'clean' build without using any cached node modules:
+To list the available versions of Node.js and npm, see these manifests:
 
-```shell
-heroku config:set NODE_MODULES_CACHE=false
-git commit -am 'rebuild' --allow-empty
-git push heroku master
-heroku config:unset NODE_MODULES_CACHE
-```
+* http://heroku-buildpack-nodejs.s3.amazonaws.com/manifest.nodejs
+* http://heroku-buildpack-nodejs.s3.amazonaws.com/manifest.npm
 
-Caching node_modules between builds dramatically speeds up build times.
-However, `npm install` doesn't automatically update already-installed modules
-as long as they fall within acceptable semver ranges,
-which can lead to outdated modules.
-
-Default: `NODE_MODULES_CACHE` defaults to true
-
-### Enable or disable devDependencies installation
-
-During local development, `npm install` installs all dependencies
-and all devDependencies (test frameworks, build tools, etc).
-This is usually something you want to avoid in production, so
-npm has a 'production' config that can be set through the environment:
-
-To install *dependencies only:*
-
-```shell
-heroku config:set NPM_CONFIG_PRODUCTION=true
-```
-
-To install *dependencies and devDependencies:*
-
-```shell
-heroku config:set NPM_CONFIG_PRODUCTION=false
-```
-
-Default: `NPM_CONFIG_PRODUCTION` defaults to true on Heroku
-
-### Configure npm with .npmrc
-
-Sometimes, a project needs custom npm behavior to set up proxies,
-use a different registry, etc. For such behavior,
-just include an `.npmrc` file in the root of your project:
-
-```
-# .npmrc
-registry = 'https://custom-registry.com/'
-```
-
-### Reasonable defaults for concurrency
-
-This buildpack adds two environment variables: `WEB_MEMORY` and `WEB_CONCURRENCY`.
-You can set either of them, but if unset the buildpack will fill them with reasonable defaults.
-
-- `WEB_MEMORY`: expected memory use by each node process (in MB, default: 512)
-- `WEB_CONCURRENCY`: recommended number of processes to Cluster based on the current environment
-
-Clustering is not done automatically; concurrency should be part of the app,
-usually via a library like [throng](https://github.com/hunterloftis/throng).
-Apps without any clustering mechanism will remain unaffected by these variables.
-
-This behavior allows your app to automatically take advantage of larger containers.
-The default settings will cluster
-1 process on a 1X dyno, 2 processes on a 2X dyno, and 12 processes on a PX dyno.
-
-For example, when your app starts:
-
-```
-app[web.1]: Detected 1024 MB available memory, 512 MB limit per process (WEB_MEMORY)
-app[web.1]: Recommending WEB_CONCURRENCY=2
-app[web.1]:
-app[web.1]: > example-concurrency@1.0.0 start /app
-app[web.1]: > node server.js
-app[web.1]: Listening on 51118
-app[web.1]: Listening on 51118
-```
-
-Notice that on a 2X dyno, the
-[example concurrency app](https://github.com/heroku-examples/node-concurrency)
-listens on two processes concurrently.
-
-### Chain Node with multiple buildpacks
-
-This buildpack automatically exports node, npm, and any node_modules binaries
-into the `$PATH` for easy use in subsequent buildpacks.
-
-## Feedback
-
-Having trouble? Dig it? Feature request?
-
-- [help.heroku.com](https://help.heroku.com/)
-- [@hunterloftis](http://twitter.com/hunterloftis)
-- [github issues](https://github.com/heroku/heroku-buildpack-nodejs/issues)
-
-## Hacking
-
-To make changes to this buildpack, fork it on Github. Push up changes to your fork, then create a new Heroku app to test it, or configure an existing app to use your buildpack:
-
-```
-# Create a new Heroku app that uses your buildpack
-heroku create --buildpack <your-github-url>
-
-# Configure an existing Heroku app to use your buildpack
-heroku buildpacks:set <your-github-url>
-
-# You can also use a git branch!
-heroku buildpacks:set <your-github-url>#your-branch
-```
-
-## Testing
-
-The buildpack tests use [Docker](https://www.docker.com/) to simulate
-Heroku's Cedar and Cedar-14 containers.
-
-To run the test suite:
-
-```
-make test
-```
-
-Or to just test in cedar or cedar-14:
-
-```
-make test-cedar-10
-make test-cedar-14
-```
-
-The tests are run via the vendored [shunit2](http://shunit2.googlecode.com/svn/trunk/source/2.1/doc/shunit2.html)
-test framework.
